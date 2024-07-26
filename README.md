@@ -4,6 +4,9 @@ This repository contains the files related to the experiments reported in the pa
 
 [A. Cristofari. Block cubic Newton with greedy selection. _arXiv:2407.18150_](https://arxiv.org/abs/2407.18150).
 
+In the above paper, a second-order block coordinate descent method is proposed, named _Inexact Block Cubic Newton_ (IBCN) method,
+using a greedy rule for the block selection rule and cubic models for the block update.
+
 ## Author
 
 Andrea Cristofari (e-mail: [andrea.cristofari@uniroma2.it](mailto:andrea.cristofari@uniroma2.it))
@@ -23,7 +26,7 @@ along with IBCN. If not, see <http://www.gnu.org/licenses/>.
 
 ## Usage
 
-All codes are in Matlab. Two classes of problems are considered, as described in the above paper.
+All codes are in Matlab. Two classes of unconstrained problems are considered, as described in the above paper.
 
 1. For sparse least squares (non-convex problems), just run the file `main_sp_ls.m`.
 
