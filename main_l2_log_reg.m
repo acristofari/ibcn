@@ -10,7 +10,7 @@
 % -------------------------------------------------------------------------
 
 % problems to be previously downloaded from https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/
-% and converted into matlab files, named as follows, by using the readlibsvm software,
+% and converted into matlab files, named as follows, by using the libsvmread software,
 % which can be downloaded from therein as well, such that the sparse matrix A is the instance matrix and b is the label vector
 
 problem_set = {

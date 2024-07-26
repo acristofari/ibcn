@@ -28,7 +28,7 @@ All codes are in Matlab. Two classes of problems are considered, as described in
 1. For sparse least squares (non-convex problems), just run the file `main_sp_ls.m`.
 
 2. For l2-regularized logistic regression (convex problems), first download the datasets `gisette`, `leu` and `madelon`
-   from <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/>. Using the `readlibsvm` software, which can be downloaded from therein as well,
+   from <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/>. Using the `libsvmread` software, which can be downloaded from therein as well,
    convert the files into matlab files and save them as `gisette.mat`, `leu.mat` and `madelon.mat`, respectively.
    In each matlab file, the instance matrix must be a sparse matrix named `A` and the label vector must be a vector named `b`.
    Then, run the file `main_l2_log_reg.m`.
