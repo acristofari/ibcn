@@ -5,7 +5,7 @@
 % due to different software, operating systems, seed initialization, etc.
 % 
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update: July 26th, 2024
+% Last update of this file: July 27th, 2024
 
 % -------------------------------------------------------------------------
 
@@ -40,12 +40,6 @@ g_ibcn = cell(n_p,1);
 t_ibcn = cell(n_p,1);
 it_ibcn = zeros(n_p,1);
 flag_ibcn = zeros(n_p,1);
-x_bcd = cell(n_p,1);
-f_bcd = cell(n_p,1);
-g_bcd = cell(n_p,1);
-t_bcd = cell(n_p,1);
-it_bcd = zeros(n_p,1);
-flag_bcd = zeros(n_p,1);
 
 eps = 0e0;
 max_it = 10000;
@@ -99,20 +93,5 @@ for i_p = 1:n_p
              '\n***********************************************************\n\n'], ...
             f_ibcn{i_p}(end),g_ibcn{i_p}(end),it_ibcn(i_p),flag_ibcn(i_p));
     %----------------------------------------------------------------------
-    
-            
-    %----------------------------------------------------------------------
-    % 2nd ORDER BLOCK COORDINATE DESCENT
-    %----------------------------------------------------------------------
-    [x_bcd{i_p},it_bcd(i_p),flag_bcd(i_p),f_bcd{i_p},g_bcd{i_p}] = bcd_l2_log_reg(A,b,x0,lambda,opts_bcd);
-    fprintf(['***********************************************************' ...
-             '\nAlgorithm: 2nd ORDER BLOCK COORDINATE DESCENT' ...
-             '\nf =  %-.4e'   ...
-             '\n||g|| = %-.4e'   ...
-             '\niterations = %-i' ...
-             '\nflag = %-i' ...
-             '\n***********************************************************\n\n'], ...
-            f_bcd{i_p}(end),g_bcd{i_p}(end),it_bcd(i_p),flag_bcd(i_p));
-    %----------------------------------------------------------------------
-         
+             
 end
