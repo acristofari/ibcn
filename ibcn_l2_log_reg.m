@@ -1,8 +1,8 @@
-% Inexact Block Cubic Newton (IBCN) method with greedy selection for l2-regularized logistic regression, as described in the paper
+% Inexact Block Cubic Newton (IBCN) method with greedy selection for l2-regularized logistic regression (labels -1 and 1), as described in the paper
 % "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150".
 %
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: July 26th, 2024
+% Last update of this file: November 18th, 2024
 % 
 % Licensing:
 % This file is part of IBCN.
@@ -19,7 +19,7 @@
 % 
 % Copyright 2024 Andrea Cristofari.
 
-function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
+function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
 
     if (~isnumeric(A) || ~isreal(A) || ~ismatrix(A))
         error('the first input must be a real matrix');
@@ -42,7 +42,7 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
         error('lambda must be a non-negative real number');
     end
     
-    % set options (if any, default values otherwise)
+    % set options
     block_dim = 1;
     eps = 1e-5;
     max_it = 10000;
@@ -104,13 +104,15 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
     it = 0;
     
     if (max_it < Inf)
-        f_vec = zeros(max_it+1,1);
+        t_vec = zeros(max_it+1,1);
     else
-        f_vec = zeros(min(10000,100*n)+1,1);
+        t_vec = zeros(min(10000,100*n)+1,1);
     end
-    f_vec(1) = f;
-    g_vec = zeros(length(f_vec)-1,1);
-    	
+    f_vec = [f; -Inf(length(t_vec)-1,1)];
+    g_vec = -Inf(length(t_vec)-1,1);
+    
+    t0 = tic;
+	
     if (verbosity)
         fprintf('%s%.4e\n','it = 0, f = ',f);
     end
@@ -151,6 +153,8 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
         end
         
         it = it + 1;
+        t = toc(t0);
+        t_vec(it+1) = t;
         f_vec(it+1) = f;
         if (verbosity)
             fprintf('%s%i%s%.4e%s%.4e\n','it = ',it,', f = ',f,', sup norm of g = ',g_sup_norm);
@@ -165,6 +169,7 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
     if (it+1 < max_it)
         f_vec(it+2:end) = [];
         g_vec(it+1:end) = [];
+        t_vec(it+2:end) = [];
     end
     
     function it_succ = compute_next_point()
@@ -195,16 +200,16 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
         s = -alpha*g_block;
         
         s_norm = sqrt(s'*s);
-        g_m_1 = H_block*s;
-        g_m_2 = 5e-1*M_block*s_norm*s;
-        g_m = g_block + g_m_1 + g_m_2;
+        Hs_block = H_block*s;
+        M_snorm_s = M_block*s_norm*s;
+        g_m = g_block + Hs_block + 5e-1*M_snorm_s;
         g_m_norm = sqrt(g_m'*g_m);
         
         if (g_m_norm>tau*s_norm*s_norm)
-            ms = g_block'*s + 5e-1*g_m_1'*s + (g_m_2'*s)/3e0;
-            [qs,flag_cubic] = minimize_cubic_model();
+            ms = g_block'*s + 5e-1*(Hs_block'*s) + (M_snorm_s'*s)/6e0;
+            [qs,flag_cubic] = minimize_cubic_model(Hs_block);
         else
-            qs = s'*(g_block+g_m_2);
+            qs = s'*(g_block+5e-1*Hs_block);
         end
         if (flag_cubic < 5e-1)
             x_block = x_block_old + s;
@@ -212,7 +217,7 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
             v = exp(b.*r);
             x_sq(ind_block) = x_block.*x_block;
             f = sum(log((1e0./v)+1e0))/l + lambda*sum(x_sq(1:end-1));
-            if ((f-f_old<=eta*qs) && (qs<=f_old))
+            if ((f-f_old<=eta*qs) && (qs<0e0))
                 it_succ = true;
                 x(ind_block) = x_block;
             else
@@ -225,7 +230,7 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
                 
     end
     
-    function [qs,flag_cubic] = minimize_cubic_model()
+    function [qs,flag_cubic] = minimize_cubic_model(Hs)
         
         %--------------------------%
         % SPECTRAL GRADIENT METHOD %
@@ -272,15 +277,16 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
                 c_bb = min(c_bb_max,max(1e0,s_norm/g_m_norm));
             end
             d_m = -c_bb*g_m;
-                        
+                     
             % Armijo line search
             alpha = 1e0;
             s_trial = s + d_m;
             s_trial_norm = sqrt(s_trial'*s_trial);
-            g_m_1 = H_block*s_trial;
-            g_m_2 = 5e-1*M_block*s_trial_norm*s_trial;
-            qs_trial = s_trial'*g_block + 5e-1*s_trial'*g_m_1;
-            ms_trial = qs_trial + (s_trial'*g_m_2)/3e0;
+            Hd = H_block*d_m;
+            Hs_trial = Hs + Hd;
+            M_snorm_s_trial = M_block*s_trial_norm*s_trial;
+            qs_trial = s_trial'*g_block + 5e-1*(s_trial'*Hs_trial);
+            ms_trial = qs_trial + (s_trial'*M_snorm_s_trial)/6e0;
             gamma_gd_m = gamma_ls*(g_m'*d_m);
             while (ms_trial > mw + alpha*gamma_gd_m)
                 alpha = delta_ls*alpha;
@@ -289,10 +295,10 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
                 end
                 s_trial = s + alpha*d_m;
                 s_trial_norm = sqrt(s_trial'*s_trial);
-                g_m_1 = H_block*s_trial;
-                g_m_2 = 5e-1*M_block*s_trial_norm*s_trial;
-                qs_trial = s_trial'*g_block + 5e-1*s_trial'*g_m_1;
-                ms_trial = qs_trial + (s_trial'*g_m_2)/3e0;
+                Hs_trial = Hs + alpha*Hd;
+                M_snorm_s_trial = M_block*s_trial_norm*s_trial;
+                qs_trial = s_trial'*g_block + 5e-1*(s_trial'*Hs_trial);
+                ms_trial = qs_trial + (s_trial'*M_snorm_s_trial)/6e0;
             end
             
             if (flag_cubic > 0)
@@ -306,7 +312,8 @@ function [x,it,flag,f_vec,g_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
             s = s_trial;
             ms = ms_trial;
             qs = qs_trial;
-            g_m = g_block + g_m_1 + g_m_2;
+            Hs = Hs_trial;
+            g_m = g_block + Hs + 5e-1*M_snorm_s_trial;
             s_norm = s_trial_norm;
             g_m_norm = sqrt(g_m'*g_m);
             w = [ms; w(1:end-1)];

@@ -1,17 +1,16 @@
-% This is the main file to solve l2-regularized logistic regression, as described in the paper
+% This is the main file to solve l2-regularized logistic regression (labels -1 and 1), as described in the paper
 % "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150"
 %
 % Note that results might not coincide with those reported in the paper exactly
 % due to different software, operating systems, seed initialization, etc.
 % 
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: July 27th, 2024
+% Last update of this file: November 18th, 2024
 
 % -------------------------------------------------------------------------
 
-% problems to be previously downloaded from https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/
-% and converted into matlab files, named as follows, by using the libsvmread software,
-% which can be downloaded from therein as well, such that the sparse matrix A is the instance matrix and b is the label vector
+% problems should be downloaded from https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/
+% and converted into matlab files, named as follows, such that the sparse matrix A is the instance matrix and b is the label vector
 
 problem_set = {
                'gisette'  % not to be scaled
@@ -83,7 +82,7 @@ for i_p = 1:n_p
     %----------------------------------------------------------------------
     % INEXACT BLOCK CUBIC NEWTON
     %----------------------------------------------------------------------
-    [x_ibcn{i_p},it_ibcn(i_p),flag_ibcn(i_p),f_ibcn{i_p},g_ibcn{i_p}] = ibcn_l2_log_reg(A,b,x0,lambda,opts_ibcn);
+    [f,x_ibcn{i_p},it_ibcn(i_p),flag_ibcn(i_p),f_ibcn{i_p},g_ibcn{i_p},t_ibcn{i_p}] = ibcn_l2_log_reg(A,b,x0,lambda,opts_ibcn);
     fprintf(['***********************************************************' ...
              '\nAlgorithm: INEXACT BLOCK CUBIC NEWTON' ...
              '\nf =  %-.4e'   ...
