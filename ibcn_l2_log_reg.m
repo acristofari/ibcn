@@ -2,7 +2,7 @@
 % "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150".
 %
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: November 18th, 2024
+% Last update of this file: March 11th, 2025
 % 
 % Licensing:
 % This file is part of IBCN.
@@ -93,7 +93,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
             
     s = 0e0;
     s_norm = 0e0;
-    M_block = 1e0;
+    sigma_block = 1e0;
     H_block = 0e0;
     flag_cubic = 0;
     ms = 0e0;
@@ -142,7 +142,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
             
             it_succ = compute_next_point;
             if ~it_succ
-                M_block = gamma*M_block;
+                sigma_block = gamma*sigma_block;
             end
                         
         else
@@ -196,12 +196,12 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
         
         sq_norm_g_block = g_block'*g_block;
         gHg_block = g_block'*H_block*g_block;
-        alpha = 2e0*sq_norm_g_block/(gHg_block+sqrt(gHg_block*gHg_block+2e0*M_block*sq_norm_g_block*sq_norm_g_block*sqrt(sq_norm_g_block)));
+        alpha = 2e0*sq_norm_g_block/(gHg_block+sqrt(gHg_block*gHg_block+2e0*sigma_block*sq_norm_g_block*sq_norm_g_block*sqrt(sq_norm_g_block)));
         s = -alpha*g_block;
         
         s_norm = sqrt(s'*s);
         Hs_block = H_block*s;
-        M_snorm_s = M_block*s_norm*s;
+        M_snorm_s = sigma_block*s_norm*s;
         g_m = g_block + Hs_block + 5e-1*M_snorm_s;
         g_m_norm = sqrt(g_m'*g_m);
         
@@ -284,7 +284,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
             s_trial_norm = sqrt(s_trial'*s_trial);
             Hd = H_block*d_m;
             Hs_trial = Hs + Hd;
-            M_snorm_s_trial = M_block*s_trial_norm*s_trial;
+            M_snorm_s_trial = sigma_block*s_trial_norm*s_trial;
             qs_trial = s_trial'*g_block + 5e-1*(s_trial'*Hs_trial);
             ms_trial = qs_trial + (s_trial'*M_snorm_s_trial)/6e0;
             gamma_gd_m = gamma_ls*(g_m'*d_m);
@@ -296,7 +296,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
                 s_trial = s + alpha*d_m;
                 s_trial_norm = sqrt(s_trial'*s_trial);
                 Hs_trial = Hs + alpha*Hd;
-                M_snorm_s_trial = M_block*s_trial_norm*s_trial;
+                M_snorm_s_trial = sigma_block*s_trial_norm*s_trial;
                 qs_trial = s_trial'*g_block + 5e-1*(s_trial'*Hs_trial);
                 ms_trial = qs_trial + (s_trial'*M_snorm_s_trial)/6e0;
             end
