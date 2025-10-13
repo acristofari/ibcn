@@ -2,7 +2,7 @@
 % "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150".
 %
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: March 11th, 2025
+% Last update of this file: October 13th, 2025
 % 
 % Licensing:
 % This file is part of IBCN.
@@ -17,9 +17,9 @@
 % You should have received a copy of the GNU General Public License
 % along with IBCN. If not, see <http://www.gnu.org/licenses/>.
 % 
-% Copyright 2024 Andrea Cristofari.
+% Copyright 2025 Andrea Cristofari.
 
-function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,options)
+function [f,x,it,flag] = ibcn_sp_ls(A,b,lambda,omega,p,options)
     
     if (~isnumeric(A) || ~isreal(A) || ~ismatrix(A))
         error('the first input must be a real matrix');
@@ -30,12 +30,6 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
     end
     if (size(b,1) ~= l)
         error('the dimension of A and b must agree');
-    end
-    if (~isnumeric(x) || ~isreal(x) || ~iscolumn(x))
-        error('the third input must be a real column vector');
-    end
-    if (size(x,1) ~= n)
-        error('the dimension of A and x must agree');
     end
     if (~isnumeric(lambda) || ~isreal(lambda) || ~isscalar(lambda) || lambda<0e0)
         error('lambda must be a non-negative real number');
@@ -51,10 +45,11 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
     block_dim = 1;
     eps = 1e-5;
     max_it = 10000;
+    store_matrix = true;
     verbosity = false;
-    if (nargin == 7)
+    if (nargin == 6)
         if (~isstruct(options) || ~isscalar(options))
-            error('the fifth input (which is optional) must be a structure');
+            error('the sixth input (which is optional) must be a structure');
         end
         opts_field = fieldnames(options);
         for i = 1:length(opts_field)
@@ -76,6 +71,11 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
                        error('''max_it'' must be a real number >= 1');
                     end
                     max_it = floor(max_it);
+                case 'store_matrix'
+                    store_matrix = options.store_matrix;
+                    if (~islogical(store_matrix) || ~isscalar(store_matrix))
+                       error('''store_matrix'' must be a logical');
+                    end
                 case 'verbosity'
                     verbosity = options.verbosity;
                     if (~islogical(verbosity) || ~isscalar(verbosity))
@@ -94,14 +94,29 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
     omega_sq = omega*omega;
     p_half = 5e-1*p;
     
-    r = A*x - b;
-    x_omega = x.*x + omega_sq;
-    reg_term = sum(x_omega.^p_half);
-    f = (r'*r)/l + lambda*reg_term;
-        
+    x = zeros(n,1);
+    
+    x_sq_omega = omega_sq*ones(n,1); % x_sq_omega = x.*x + omega_sq
+    reg_term = n*(omega_sq^p_half);
+    if store_matrix
+        try
+            Q = (A'*A)/l;
+        catch
+            error('it is not possible storing matrix A^T A (probably due to its large dimension), try using store_matrix = false in the options');
+        end
+        c = 2e0*(A'*b)/l;
+        gq = -c; % gq = 2*Q*x - c
+    else
+        r = -b; % r = A*x - b
+        if (block_dim <= 1.5)
+            diag_Q = (2e0/l)*(vecnorm(A,2).^2)';
+        end
+    end
+    f = (b'*b)/l + lambda*reg_term;
+    
     s = 0e0;
     s_norm = 0e0;
-    sigma_block = 1e0;
+    M_block = 1e0;
     H_block = 0e0;
     ms = 0e0;
     g_m = 0e0;
@@ -109,17 +124,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
     alpha = 0e0;
     
     it = 0;
-        
-    if (max_it < Inf)
-        t_vec = zeros(max_it+1,1);
-    else
-        t_vec = zeros(min(10000,100*n)+1,1);
-    end
-    f_vec = [f; -Inf(length(t_vec)-1,1)];
-    g_vec = -Inf(length(t_vec)-1,1);
     
-    t0 = tic;
-	
     if (verbosity)
         fprintf('%s%.4e\n','it = 0, f = ',f);
     end
@@ -127,12 +132,14 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
     while (true)
         
         % compute the gradient
-        g0 = (x_omega.^(p_half-1e0));
-        g = (2e0/l)*(A'*r) + lambda*p*(x.*g0);
-        [g_sup_norm,imax] = max(abs(g));
+        g0 = x_sq_omega.^(p_half-1e0);
+        if store_matrix
+            g = gq + lambda*p*(x.*g0);
+        else
+            g = (2e0/l)*(A'*r) + lambda*p*(x.*g0);
+        end
         
-        g_norm = norm(g);
-        g_vec(it+1) = g_norm;
+        [g_sup_norm,imax] = max(abs(g));
         
         if (g_sup_norm > eps)
             
@@ -146,13 +153,13 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
             end
             
             x_block = x(ind_block);
-            x_omega_block = x_omega(ind_block);
+            x_sq_omega_block = x_sq_omega(ind_block);
             g_block = g(ind_block);
             g0_block = g0(ind_block);
             
             it_succ = compute_next_point;
             if ~it_succ
-                sigma_block = gamma*sigma_block;
+                M_block = gamma*M_block;
             end
             
         else
@@ -163,11 +170,8 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
         end
         
         it = it + 1;
-        t = toc(t0);
-        t_vec(it+1) = t;
-        f_vec(it+1) = f;
         if (verbosity)
-            fprintf('%s%i%s%.4e%s%.4e\n','it = ',it,', f = ',f,', sup norm of g = ',g_sup_norm);
+            fprintf('%s%i%s%.4e\n','it = ',it,', f = ',f);
         end
         if (it >= max_it)
             flag = 1;
@@ -176,36 +180,42 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
         
     end
     
-    if (it+1 < max_it)
-        f_vec(it+2:end) = [];
-        g_vec(it+1:end) = [];
-        t_vec(it+2:end) = [];
-    end
-    
     function it_succ = compute_next_point
-                
-        A_block = A(:,ind_block);
-        H_block = (2e0/l)*(A_block'*A_block) + diag(lambda*p*g0_block.*(1e0+2e0*(p_half-1e0)*(x_block.*x_block)./(x_omega_block)));
+        
+        if store_matrix
+            H_block = 2e0*Q(ind_block,ind_block) + diag(lambda*p*g0_block.*(1e0+2e0*(p_half-1e0)*(x_block.*x_block)./(x_sq_omega_block)));
+        else
+            if (block_dim <= 1.5)
+                H_block = diag_Q(ind_block) + diag(lambda*p*g0_block.*(1e0+2e0*(p_half-1e0)*(x_block.*x_block)./(x_sq_omega_block)));
+            else
+                A_block = A(:,ind_block);
+                H_block = (2e0/l)*(A_block'*A_block) + diag(lambda*p*g0_block.*(1e0+2e0*(p_half-1e0)*(x_block.*x_block)./(x_sq_omega_block)));
+            end
+        end
         
         it_succ = false;
         x_block_old = x_block;
-        reg_term_c = reg_term - sum(x_omega_block.^p_half);
+        reg_term_c = reg_term - sum(x_sq_omega_block.^p_half);
         reg_term_old = reg_term;
-        r_old = r;
         f_old = f;
-                
+        if store_matrix
+            gq_old = gq;
+        else
+            r_old = r;
+        end
+        
         % minimize the cubic model (approximately) starting from the Cauchy point
         
         flag_cubic = 0;
         
         sq_norm_g_block = g_block'*g_block;
         gHg_block = g_block'*H_block*g_block;
-        alpha = 2e0*sq_norm_g_block/(gHg_block+sqrt(gHg_block*gHg_block+2e0*sigma_block*sq_norm_g_block*sq_norm_g_block*sqrt(sq_norm_g_block)));
+        alpha = 2e0*sq_norm_g_block/(gHg_block+sqrt(gHg_block*gHg_block+2e0*M_block*sq_norm_g_block*sq_norm_g_block*sqrt(sq_norm_g_block)));
         s = -alpha*g_block;
         
         s_norm = sqrt(s'*s);
         Hs_block = H_block*s;
-        M_snorm_s = sigma_block*s_norm*s;
+        M_snorm_s = M_block*s_norm*s;
         g_m = g_block + Hs_block + 5e-1*M_snorm_s;
         g_m_norm = sqrt(g_m'*g_m);
         
@@ -217,21 +227,30 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
         end
         if (flag_cubic < 5e-1)
             x_block = x_block_old + s;
-            x_omega_block = x_block.*x_block + omega_sq;
-            reg_term = reg_term_c + sum(x_omega_block.^p_half);
-            r = r + A(:,ind_block)*s;
-            f = (r'*r)/l + lambda*reg_term;
+            x_sq_omega_block = x_block.*x_block + omega_sq;
+            reg_term = reg_term_c + sum(x_sq_omega_block.^p_half);
+            if store_matrix
+                gq = gq + 2e0*(Q(:,ind_block)*s);
+                f = 0.5*((gq-c)'*x+(gq(ind_block)-c(ind_block))'*s) + (b'*b)/l + lambda*reg_term;
+            else
+                r = r + A(:,ind_block)*s;
+                f = (r'*r)/l + lambda*reg_term;
+            end
             if ((f-f_old<=eta*qs) && (qs<0e0))
                 it_succ = true;
                 x(ind_block) = x_block;
-                x_omega(ind_block) = x_omega_block;
+                x_sq_omega(ind_block) = x_sq_omega_block;
             else
                 reg_term = reg_term_old;
-                r = r_old;
                 f = f_old;
+                if store_matrix
+                    gq = gq_old;
+                else
+                    r = r_old;
+                end
             end
         end
-    
+        
     end
     
     function [qs,flag_cubic] = minimize_cubic_model(Hs)
@@ -288,7 +307,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
             s_trial_norm = sqrt(s_trial'*s_trial);
             Hd = H_block*d_m;
             Hs_trial = Hs + Hd;
-            M_snorm_s_trial = sigma_block*s_trial_norm*s_trial;
+            M_snorm_s_trial = M_block*s_trial_norm*s_trial;
             qs_trial = s_trial'*g_block + 5e-1*(s_trial'*Hs_trial);
             ms_trial = qs_trial + (s_trial'*M_snorm_s_trial)/6e0;
             gamma_gd_m = gamma_ls*(g_m'*d_m);
@@ -300,7 +319,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_sp_ls(A,b,x,lambda,omega,p,optio
                 s_trial = s + alpha*d_m;
                 s_trial_norm = sqrt(s_trial'*s_trial);
                 Hs_trial = Hs + alpha*Hd;
-                M_snorm_s_trial = sigma_block*s_trial_norm*s_trial;
+                M_snorm_s_trial = M_block*s_trial_norm*s_trial;
                 qs_trial = s_trial'*g_block + 5e-1*(s_trial'*Hs_trial);
                 ms_trial = qs_trial + (s_trial'*M_snorm_s_trial)/6e0;
             end

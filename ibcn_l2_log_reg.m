@@ -2,7 +2,7 @@
 % "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150".
 %
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: March 11th, 2025
+% Last update of this file: October 13th, 2025
 % 
 % Licensing:
 % This file is part of IBCN.
@@ -17,10 +17,10 @@
 % You should have received a copy of the GNU General Public License
 % along with IBCN. If not, see <http://www.gnu.org/licenses/>.
 % 
-% Copyright 2024 Andrea Cristofari.
+% Copyright 2025 Andrea Cristofari.
 
-function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
-
+function [f,x,it,flag] = ibcn_l2_log_reg(A,b,lambda,options)
+    
     if (~isnumeric(A) || ~isreal(A) || ~ismatrix(A))
         error('the first input must be a real matrix');
     end
@@ -32,12 +32,6 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
     if (size(b,1) ~= l)
         error('the dimension of A and b must agree');
     end
-    if (~isnumeric(x) || ~isreal(x) || ~iscolumn(x))
-        error('the third input must be a real column vector');
-    end
-    if (size(x,1) ~= n)
-        error('the dimension of A and x must agree');
-    end
     if (~isnumeric(lambda) || ~isreal(lambda) || ~isscalar(lambda) || lambda<0e0)
         error('lambda must be a non-negative real number');
     end
@@ -47,7 +41,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
     eps = 1e-5;
     max_it = 10000;
     verbosity = false;
-    if (nargin == 5)
+    if (nargin == 4)
         if (~isstruct(options) || ~isscalar(options))
             error('the sixth input (which is optional) must be a structure');
         end
@@ -86,14 +80,16 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
     gamma = 2;
     tau = 1e0;
     
-    r = A*x;
-    v = exp(b.*r);
-    x_sq = x.*x;
-    f = sum(log((1e0./v)+1e0))/l + lambda*sum(x_sq(1:end-1));
-            
+    x = zeros(n,1);
+    
+    r = zeros(l,1); % r = A*x;
+    v = ones(l,1); % v = exp(b.*r);
+    x_sq = zeros(n,1); % x_sq = x.*x;
+    f = log(2e0);
+    
     s = 0e0;
     s_norm = 0e0;
-    sigma_block = 1e0;
+    M_block = 1e0;
     H_block = 0e0;
     flag_cubic = 0;
     ms = 0e0;
@@ -103,16 +99,6 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
     
     it = 0;
     
-    if (max_it < Inf)
-        t_vec = zeros(max_it+1,1);
-    else
-        t_vec = zeros(min(10000,100*n)+1,1);
-    end
-    f_vec = [f; -Inf(length(t_vec)-1,1)];
-    g_vec = -Inf(length(t_vec)-1,1);
-    
-    t0 = tic;
-	
     if (verbosity)
         fprintf('%s%.4e\n','it = 0, f = ',f);
     end
@@ -121,11 +107,9 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
         
         % compute the gradient       
         g = -(A'*(b./(v+1e0)))/l + 2e0*lambda*([x(1:end-1); 0e0]);
+        
         [g_sup_norm,imax] = max(abs(g));
                 
-        g_norm = norm(g);
-        g_vec(it+1) = g_norm;
-        
         if (g_sup_norm > eps)
             
             if (block_dim > 1)
@@ -142,9 +126,9 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
             
             it_succ = compute_next_point;
             if ~it_succ
-                sigma_block = gamma*sigma_block;
+                M_block = gamma*M_block;
             end
-                        
+                   
         else
             
             flag = 0;
@@ -153,23 +137,14 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
         end
         
         it = it + 1;
-        t = toc(t0);
-        t_vec(it+1) = t;
-        f_vec(it+1) = f;
         if (verbosity)
-            fprintf('%s%i%s%.4e%s%.4e\n','it = ',it,', f = ',f,', sup norm of g = ',g_sup_norm);
+            fprintf('%s%i%s%.4e\n','it = ',it,', f = ',f);
         end
         if (it >= max_it)
             flag = 1;
             break;
         end
         
-    end
-    
-    if (it+1 < max_it)
-        f_vec(it+2:end) = [];
-        g_vec(it+1:end) = [];
-        t_vec(it+2:end) = [];
     end
     
     function it_succ = compute_next_point()
@@ -196,12 +171,12 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
         
         sq_norm_g_block = g_block'*g_block;
         gHg_block = g_block'*H_block*g_block;
-        alpha = 2e0*sq_norm_g_block/(gHg_block+sqrt(gHg_block*gHg_block+2e0*sigma_block*sq_norm_g_block*sq_norm_g_block*sqrt(sq_norm_g_block)));
+        alpha = 2e0*sq_norm_g_block/(gHg_block+sqrt(gHg_block*gHg_block+2e0*M_block*sq_norm_g_block*sq_norm_g_block*sqrt(sq_norm_g_block)));
         s = -alpha*g_block;
         
         s_norm = sqrt(s'*s);
         Hs_block = H_block*s;
-        M_snorm_s = sigma_block*s_norm*s;
+        M_snorm_s = M_block*s_norm*s;
         g_m = g_block + Hs_block + 5e-1*M_snorm_s;
         g_m_norm = sqrt(g_m'*g_m);
         
@@ -216,7 +191,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
             r = r + A(:,ind_block)*s;
             v = exp(b.*r);
             x_sq(ind_block) = x_block.*x_block;
-            f = sum(log((1e0./v)+1e0))/l + lambda*sum(x_sq(1:end-1));
+            f = mean(log((1e0./v)+1e0)) + lambda*sum(x_sq(1:end-1));
             if ((f-f_old<=eta*qs) && (qs<0e0))
                 it_succ = true;
                 x(ind_block) = x_block;
@@ -284,7 +259,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
             s_trial_norm = sqrt(s_trial'*s_trial);
             Hd = H_block*d_m;
             Hs_trial = Hs + Hd;
-            M_snorm_s_trial = sigma_block*s_trial_norm*s_trial;
+            M_snorm_s_trial = M_block*s_trial_norm*s_trial;
             qs_trial = s_trial'*g_block + 5e-1*(s_trial'*Hs_trial);
             ms_trial = qs_trial + (s_trial'*M_snorm_s_trial)/6e0;
             gamma_gd_m = gamma_ls*(g_m'*d_m);
@@ -296,7 +271,7 @@ function [f,x,it,flag,f_vec,g_vec,t_vec] = ibcn_l2_log_reg(A,b,x,lambda,options)
                 s_trial = s + alpha*d_m;
                 s_trial_norm = sqrt(s_trial'*s_trial);
                 Hs_trial = Hs + alpha*Hd;
-                M_snorm_s_trial = sigma_block*s_trial_norm*s_trial;
+                M_snorm_s_trial = M_block*s_trial_norm*s_trial;
                 qs_trial = s_trial'*g_block + 5e-1*(s_trial'*Hs_trial);
                 ms_trial = qs_trial + (s_trial'*M_snorm_s_trial)/6e0;
             end

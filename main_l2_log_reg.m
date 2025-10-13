@@ -5,7 +5,7 @@
 % due to different software, operating systems, seed initialization, etc.
 % 
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: November 18th, 2024
+% Last update of this file: October 13th, 2025
 
 % -------------------------------------------------------------------------
 
@@ -25,29 +25,27 @@ lambda = 1e-3;
 %--------------------------------------------------------------------------
 
 % size of blocks
-% block_dim = 1;
+block_dim = 1;
 % block_dim = 5;
 % block_dim = 10;
 % block_dim = 20;
 % block_dim = 50;
-block_dim = 100;
+% block_dim = 100;
 
-% initialize to store results
+% initialization to store results
 x_ibcn = cell(n_p,1);
-f_ibcn = cell(n_p,1);
+f_ibcn = zeros(n_p,1);
 g_ibcn = cell(n_p,1);
-t_ibcn = cell(n_p,1);
 it_ibcn = zeros(n_p,1);
 flag_ibcn = zeros(n_p,1);
 
-eps = 0e0;
-max_it = 10000;
+% algorithm parameters
+eps = 1e-3; % optimality precision
+max_it = 10000; % maximum number of iterations
 
+% create options for ibcn
 opts_ibcn = struct('block_dim',block_dim,'eps_opt',eps,'max_it',max_it);
-opts_bcd = opts_ibcn;
 
-rng(block_dim)
-    
 for i_p = 1:n_p
     
     dataset_name = problem_set{i_p};
@@ -82,15 +80,14 @@ for i_p = 1:n_p
     %----------------------------------------------------------------------
     % INEXACT BLOCK CUBIC NEWTON
     %----------------------------------------------------------------------
-    [f,x_ibcn{i_p},it_ibcn(i_p),flag_ibcn(i_p),f_ibcn{i_p},g_ibcn{i_p},t_ibcn{i_p}] = ibcn_l2_log_reg(A,b,x0,lambda,opts_ibcn);
+    [f_ibcn(i_p),x_ibcn{i_p},it_ibcn(i_p),flag_ibcn(i_p)] = ibcn_l2_log_reg(A,b,lambda,opts_ibcn);
     fprintf(['***********************************************************' ...
              '\nAlgorithm: INEXACT BLOCK CUBIC NEWTON' ...
-             '\nf =  %-.4e'   ...
-             '\n||g|| = %-.4e'   ...
+             '\nf = %-.4e'   ...
              '\niterations = %-i' ...
              '\nflag = %-i' ...
              '\n***********************************************************\n\n'], ...
-            f_ibcn{i_p}(end),g_ibcn{i_p}(end),it_ibcn(i_p),flag_ibcn(i_p));
+            f_ibcn(i_p),it_ibcn(i_p),flag_ibcn(i_p));
     %----------------------------------------------------------------------
              
 end
