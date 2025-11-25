@@ -5,7 +5,7 @@ This repository contains the files related to the experiments reported in
 [A. Cristofari. Block cubic Newton with greedy selection. _arXiv:2407.18150_](https://arxiv.org/abs/2407.18150).
 
 In this paper, a second-order block coordinate descent method is proposed, named _Inexact Block Cubic Newton_ (IBCN) method,
-using a greedy rule for the block selection and a cubic Newton strategy for the block update.
+using a greedy rule for block selection and a cubic Newton strategy for block updates.
 
 ## Author
 
@@ -28,6 +28,6 @@ along with IBCN. If not, see <http://www.gnu.org/licenses/>.
 
 All codes are in Matlab. Two classes of unconstrained problems are considered, as described in the above paper.
 
-1. For sparse least squares, just run the file `main_sp_ls.m`.
+1. For sparse least squares, run the file `main_sp_ls.m`.
 
 2. For l2-regularized logistic regression, first download the datasets as indicated in the file `main_l2_log_reg.m`, then run it.
