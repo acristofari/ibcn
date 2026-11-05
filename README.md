@@ -2,7 +2,7 @@
 
 This repository contains the files related to the experiments reported in
 
-[A. Cristofari. Block cubic Newton with greedy selection. _arXiv:2407.18150_](https://arxiv.org/abs/2407.18150).
+[A. Cristofari (2026). Block cubic Newton with greedy selection. Optimization Methods and Software, to appear](https://doi.org/10.1080/10556788.2026.2692465).
 
 In this paper, a second-order block coordinate descent method is proposed, named _Inexact Block Cubic Newton_ (IBCN) method,
 using a greedy rule for block selection and a cubic Newton strategy for block updates.
@@ -23,6 +23,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with IBCN. If not, see <http://www.gnu.org/licenses/>.
+
+Copyright 2025-2026 Andrea Cristofari
 
 ## Usage
 

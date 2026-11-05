@@ -1,11 +1,11 @@
 % This is the main file to solve l2-regularized logistic regression (labels -1 and 1), as described in the paper
-% "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150"
+% "A. Cristofari (2026). Block cubic Newton with greedy selection. Optimization Methods and Software, to appear".
 %
 % Note that results might not coincide with those reported in the paper exactly
 % due to different software, operating systems, seed initialization, etc.
 % 
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: October 13th, 2025
+% Last update of this file: November 5th, 2026
 
 % -------------------------------------------------------------------------
 

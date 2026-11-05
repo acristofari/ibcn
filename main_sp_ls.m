@@ -1,11 +1,11 @@
 % This is the main file to solve sparse least squares problem, as described in the paper
-% "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150"
+% "A. Cristofari (2026). Block cubic Newton with greedy selection. Optimization Methods and Software, to appear".
 %
 % Note that results may not coincide with those reported in the paper exactly
 % due to different software, operating systems, seed initialization, etc.
 % 
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: October 13th, 2025
+% Last update of this file: November 5th, 2026
 
 % -------------------------------------------------------------------------
 
@@ -64,7 +64,7 @@ for i_p = 1:n_p
     %----------------------------------------------------------------------
     % INEXACT BLOCK CUBIC NEWTON
     %----------------------------------------------------------------------
-    [f_ibcn(i_p),x_ibcn{i_p},it_ibcn(i_p),t_ibcn(i_p),flag_ibcn(i_p)] = ibcn_sp_ls(A,b,lambda,omega,p,opts_ibcn);
+    [f_ibcn(i_p),x_ibcn{i_p},it_ibcn(i_p),flag_ibcn(i_p)] = ibcn_sp_ls(A,b,lambda,omega,p,opts_ibcn);
     fprintf(['***********************************************************' ...
              '\nAlgorithm: INEXACT BLOCK CUBIC NEWTON' ...
              '\nf = %-.4e'   ...

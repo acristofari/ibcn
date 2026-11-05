@@ -1,8 +1,8 @@
 % Inexact Block Cubic Newton Method with greedy rule for sparse least squares, as described in the paper
-% "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150".
+% "A. Cristofari (2026). Block cubic Newton with greedy selection. Optimization Methods and Software, to appear".
 %
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: October 13th, 2025
+% Last update of this file: November 5th, 2026
 % 
 % Licensing:
 % This file is part of IBCN.
@@ -17,7 +17,7 @@
 % You should have received a copy of the GNU General Public License
 % along with IBCN. If not, see <http://www.gnu.org/licenses/>.
 % 
-% Copyright 2025 Andrea Cristofari.
+% Copyright 2025-2026 Andrea Cristofari.
 
 function [f,x,it,flag] = ibcn_sp_ls(A,b,lambda,omega,p,options)
     
@@ -122,6 +122,8 @@ function [f,x,it,flag] = ibcn_sp_ls(A,b,lambda,omega,p,options)
     g_m = 0e0;
     g_m_norm = 0e0;
     alpha = 0e0;
+
+    it_succ = true;
     
     it = 0;
     
@@ -132,14 +134,15 @@ function [f,x,it,flag] = ibcn_sp_ls(A,b,lambda,omega,p,options)
     while (true)
         
         % compute the gradient
-        g0 = x_sq_omega.^(p_half-1e0);
-        if store_matrix
-            g = gq + lambda*p*(x.*g0);
-        else
-            g = (2e0/l)*(A'*r) + lambda*p*(x.*g0);
+        if it_succ
+            g0 = x_sq_omega.^(p_half-1e0);
+            if store_matrix
+                g = gq + lambda*p*(x.*g0);
+            else
+                g = (2e0/l)*(A'*r) + lambda*p*(x.*g0);
+            end
+            [g_sup_norm,imax] = max(abs(g));
         end
-        
-        [g_sup_norm,imax] = max(abs(g));
         
         if (g_sup_norm > eps)
             

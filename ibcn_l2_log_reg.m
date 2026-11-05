@@ -1,8 +1,8 @@
 % Inexact Block Cubic Newton (IBCN) method with greedy selection for l2-regularized logistic regression (labels -1 and 1), as described in the paper
-% "A. Cristofari. Block cubic Newton with greedy selection. arXiv:2407.18150".
+% "A. Cristofari (2026). Block cubic Newton with greedy selection. Optimization Methods and Software, to appear".
 %
 % Author: Andrea Cristofari (andrea.cristofari@uniroma2.it)
-% Last update of this file: October 13th, 2025
+% Last update of this file: November 5th, 2026
 % 
 % Licensing:
 % This file is part of IBCN.
@@ -17,7 +17,7 @@
 % You should have received a copy of the GNU General Public License
 % along with IBCN. If not, see <http://www.gnu.org/licenses/>.
 % 
-% Copyright 2025 Andrea Cristofari.
+% Copyright 2025-2026 Andrea Cristofari.
 
 function [f,x,it,flag] = ibcn_l2_log_reg(A,b,lambda,options)
     
@@ -96,6 +96,8 @@ function [f,x,it,flag] = ibcn_l2_log_reg(A,b,lambda,options)
     g_m = 0e0;
     g_m_norm = 0e0;
     alpha = 0e0;
+
+    it_succ = true;
     
     it = 0;
     
@@ -105,11 +107,12 @@ function [f,x,it,flag] = ibcn_l2_log_reg(A,b,lambda,options)
 	
     while (true)
         
-        % compute the gradient       
-        g = -(A'*(b./(v+1e0)))/l + 2e0*lambda*([x(1:end-1); 0e0]);
+        % compute the gradient
+        if it_succ
+            g = -(A'*(b./(v+1e0)))/l + 2e0*lambda*([x(1:end-1); 0e0]);
+            [g_sup_norm,imax] = max(abs(g));
+        end
         
-        [g_sup_norm,imax] = max(abs(g));
-                
         if (g_sup_norm > eps)
             
             if (block_dim > 1)
